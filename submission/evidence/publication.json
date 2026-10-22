@@ -1,0 +1,55 @@
+{
+  "workflowRun": "https://github.com/prielK/jfrog_task/actions/runs/39698050195",
+  "workflowAttempt": 2,
+  "sourceCommit": "dfac2a737f36ec4714742f67a5d9d1dd756ec66c",
+  "image": "trialj7mn0l.jfrog.io/sample-docker-local/user-management-service:dfac2a737f36-2-2",
+  "imageDigest": "sha256:5aff0875fce24b31450f87b5aca8f9422e17ad26aed19811b3ccfee142ae7aa4",
+  "buildInfo": {
+    "name": "jfrog-home-assignment",
+    "number": "2-2",
+    "started": "2026-10-22T00:18:15.140+0000",
+    "vcs": [
+      {
+        "url": "https://github.com/prielK/jfrog_task.git",
+        "revision": "dfac2a737f36ec4714742f67a5d9d1dd756ec66c",
+        "branch": "main"
+      }
+    ],
+    "modules": [
+      {
+        "id": "user-management-service:dfac2a737f36-2-2",
+        "type": "docker",
+        "artifactCount": 13
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "name": "test",
+      "conclusion": "success",
+      "steps": []
+    },
+    {
+      "name": "publish",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Scan fixed source with Contextual Analysis",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build and smoke-test image",
+          "conclusion": "success"
+        },
+        {
+          "name": "Push image and collect Docker Build Info",
+          "conclusion": "success"
+        },
+        {
+          "name": "Publish Build Info with source revision",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}

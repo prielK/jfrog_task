@@ -40,13 +40,15 @@ To support clean installation and verification, I also declared the already-impo
 
 ## 4. Docker image and Build Info
 
-The [publishing workflow](../.github/workflows/publish-build.yml) implements Docker delivery through the JFrog CLI. It runs the tests and contextual scan, builds the production image, checks the container's `/health` endpoint, and pushes the image to Artifactory. The image runs as a non-root user and installs production dependencies from the lockfile.
+I built and published the fixed Docker image using the [publishing workflow](../.github/workflows/publish-build.yml). The [successful run](https://github.com/prielK/jfrog_task/actions/runs/39698050195), attempt 2, passed the application tests, source contextual scan, and container `/health` check before pushing the image and publishing Build Info. The image runs as a non-root user and installs production dependencies from the lockfile.
 
-| Artifact | Naming |
+| Artifact | Published value |
 | --- | --- |
-| Docker image | `trialj7mn0l.jfrog.io/sample-docker-local/user-management-service:<commit12>-<run>-<attempt>` |
+| Docker image | `trialj7mn0l.jfrog.io/sample-docker-local/user-management-service:dfac2a737f36-2-2` |
+| Image digest | `sha256:5aff0875fce24b31450f87b5aca8f9422e17ad26aed19811b3ccfee142ae7aa4` |
 | Build Info name | `jfrog-home-assignment` |
-| Build Info number | `<run>-<attempt>` |
+| Build Info number | [2-2](https://trialj7mn0l.jfrog.io/ui/builds/jfrog-home-assignment/2-2/1792628295140/published?buildRepo=artifactory-build-info) |
+| Source commit | `dfac2a737f36ec4714742f67a5d9d1dd756ec66c` |
 
 The workflow associates the pushed image and Git revision with the same build identity:
 
@@ -56,7 +58,7 @@ jf rt build-add-git "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 jf rt build-publish "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
 ```
 
-The workflow records the image reference, build identity, and source revision in its run summary, and retains the scan, container health response, and image digest as run artifacts.
+The published Build Info contains the Docker module `user-management-service:dfac2a737f36-2-2`, with 13 artifacts and the source Git revision. I verified the manifest in Artifactory and matched its SHA-256 checksum to the image digest. The [publication evidence](evidence/publication.json) records these identifiers and the successful workflow steps. The scan, container health response, and image digest are also retained as workflow artifacts.
 
 ## 5. Scan evidence
 
