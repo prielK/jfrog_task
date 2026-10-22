@@ -3,7 +3,6 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
 yarn.lock
 
 # Runtime data
@@ -58,10 +57,14 @@ jspm_packages/
 
 # Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.*.example
+
+# Local authentication and client configuration
+.npmrc
+.jfrog/
+.docker/
 
 # Logs
 logs
@@ -191,8 +194,8 @@ Desktop.ini
 # Linux
 *~
 
-# Docker
-.dockerignore
+# Local scan output (submission evidence lives under submission/evidence)
+scan-results/
 
 # Local development
 .env.local

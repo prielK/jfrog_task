@@ -15,7 +15,7 @@ const JWT_SECRET = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demoSecretKeyForMaskSca
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Basic logging middleware using moment (vulnerable version)
+// Basic logging middleware using moment
 app.use((req, res, next) => {
   console.log(`${moment().format('YYYY-MM-DD HH:mm:ss')} - ${req.method} ${req.path}`);
   next();
@@ -109,9 +109,12 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Started at: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
-});
+// Importing the app in tests must not leave a listening server behind.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Started at: ${moment().format('YYYY-MM-DD HH:mm:ss')}`);
+  });
+}
 
 module.exports = app; 

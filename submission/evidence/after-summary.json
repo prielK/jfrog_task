@@ -1,0 +1,29 @@
+{
+  "report": "after.sarif",
+  "distinctComponentFindings": 75,
+  "counts": {
+    "Missing Context": 7,
+    "Not Applicable": 36,
+    "Not Covered": 30,
+    "Applicable": 2
+  },
+  "applicable": [
+    {
+      "cve": "CVE-2018-16487",
+      "component": "lodash_4.17.4",
+      "status": "Applicable",
+      "cvss": 5.6,
+      "severity": "Medium",
+      "fixedVersion": "[4.17.11]"
+    },
+    {
+      "cve": "CVE-2020-28500",
+      "component": "lodash_4.17.4",
+      "status": "Applicable",
+      "cvss": 5.3,
+      "severity": "Medium",
+      "fixedVersion": "[4.17.21]"
+    }
+  ],
+  "selectedCvePresent": false
+}

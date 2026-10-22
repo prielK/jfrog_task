@@ -7,6 +7,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
+    "test:security": "node submission/scripts/test-moment-redos.cjs",
     "lint": "eslint src/",
     "build": "echo 'Building application...' && mkdir -p dist && cp -r src/* dist/",
     "pack": "npm pack",
@@ -16,16 +17,24 @@
     "docker:build": "docker build -t user-management-service .",
     "docker:run": "docker run -p 3000:3000 user-management-service"
   },
-  "keywords": ["user", "management", "api", "express", "nodejs"],
+  "keywords": [
+    "user",
+    "management",
+    "api",
+    "express",
+    "nodejs"
+  ],
   "author": "Interview Candidate",
   "license": "MIT",
   "dependencies": {
     "express": "4.16.1",
     "axios": "0.18.0",
     "lodash": "4.17.4",
-    "moment": "2.19.3",
+    "moment": "2.29.4",
     "mongoose": "5.0.0",
-    "jsonwebtoken": "8.1.0"
+    "jsonwebtoken": "8.1.0",
+    "bcrypt": "6.0.0",
+    "validator": "13.15.35"
   },
   "devDependencies": {
     "nodemon": "^2.0.20",
@@ -34,7 +43,7 @@
     "supertest": "^6.3.0"
   },
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   }
 }

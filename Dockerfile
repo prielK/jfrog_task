@@ -1,5 +1,5 @@
-# Use an older Node.js version for demonstration
-FROM node:14-alpine
+# Use a Node.js runtime compatible with the declared dependencies
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (including vulnerable ones)
-RUN npm install
+# Install the fixed production dependency tree from the lockfile
+RUN npm ci --omit=dev --no-audit
 
 # Copy source code
 COPY src/ ./src/

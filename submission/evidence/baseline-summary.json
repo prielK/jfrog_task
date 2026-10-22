@@ -1,0 +1,37 @@
+{
+  "report": "baseline.sarif",
+  "distinctComponentFindings": 76,
+  "counts": {
+    "Missing Context": 7,
+    "Not Applicable": 37,
+    "Not Covered": 29,
+    "Applicable": 3
+  },
+  "applicable": [
+    {
+      "cve": "CVE-2022-31129",
+      "component": "moment_2.19.3",
+      "status": "Applicable",
+      "cvss": 7.5,
+      "severity": "High",
+      "fixedVersion": "[2.29.4]"
+    },
+    {
+      "cve": "CVE-2018-16487",
+      "component": "lodash_4.17.4",
+      "status": "Applicable",
+      "cvss": 5.6,
+      "severity": "Medium",
+      "fixedVersion": "[4.17.11]"
+    },
+    {
+      "cve": "CVE-2020-28500",
+      "component": "lodash_4.17.4",
+      "status": "Applicable",
+      "cvss": 5.3,
+      "severity": "Medium",
+      "fixedVersion": "[4.17.21]"
+    }
+  ],
+  "selectedCvePresent": true
+}

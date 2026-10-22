@@ -1,5 +1,8 @@
 const request = require('supertest');
+const axios = require('axios');
 const app = require('../index');
+
+jest.mock('axios');
 
 describe('User Management Service', () => {
   describe('Health Check', () => {
@@ -99,6 +102,9 @@ describe('User Management Service', () => {
 
   describe('External Data', () => {
     it('should fetch external data', async () => {
+      axios.get.mockResolvedValueOnce({
+        data: [{ id: 10, username: 'external-user', email: 'external@example.com' }]
+      });
       const response = await request(app)
         .get('/api/external-data')
         .expect(200);

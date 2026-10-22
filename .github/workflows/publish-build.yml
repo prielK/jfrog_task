@@ -1,78 +1,124 @@
 name: Workflow-Task-seed
+
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Build, smoke-test, and publish the fixed image and Build Info
+        type: boolean
+        default: false
+        required: true
+
 permissions:
-  actions: read # for detecting the Github Actions environment.
-  id-token: write # for creating OIDC tokens for signing.
-  packages: write # for uploading attestations.
-  security-events: write # Required for uploading code scanning
-  attestations: write
   contents: read
 
-
 jobs:
-  build-publish-docker:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - run: npm test -- --runInBand
+      - run: npm run test:security
+
+  publish:
+    # Publishing is an explicit manual action after tests pass.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    needs: test
     runs-on: ubuntu-latest
     env:
-      DOCKER_REPO: <SET YOUR DOCKER VIRTUAL/LOCAL/REMOTE REPO HERE>
-      IMAGE_NAME: myApp
-      JF_URL: https://${{ vars.JF_URL }}/
-      NPM_VIRTUAL_REPO: <SET YOUR NPM VIRTUAL/LOCAL/REMOTE REPO HERE>
-      DOCKER_BUILD_SUMMARY: false
-      DOCKER_BUILD_RECORD_UPLOAD: false
-      JFROG_CLI_LOG_LEVEL: DEBUG
-
+      JF_URL: ${{ vars.JF_URL }}
+      JF_USER: ${{ vars.JF_USER }}
+      JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+      DOCKER_REPO: ${{ vars.DOCKER_REPO || 'sample-docker-local' }}
+      JFROG_CLI_BUILD_NAME: jfrog-home-assignment
+      JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}-${{ github.run_attempt }}
     steps:
-    - name: Checkout the repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
 
-    - name: Setup JFrog CLI
-      uses: jfrog/setup-jfrog-cli@v4
-      id: setup-cli
-      env:
-        JF_URL: https://${{ vars.JF_URL }}/
-      with:
-        oidc-provider-name: jfrog-github-oidc #Establish an OIDC connection to allow trust between the workflow and your JFrog instance
-    
-    - name: Set CLI Config
-      run: jf npm-config --global=true --repo-resolve=${{ vars.NPM_VIRTUAL_REPO }} --repo-deploy=${{ vars.NPM_VIRTUAL_REPO }}
+      - name: Set the image reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          registry="${JF_URL#https://}"
+          registry="${registry%/}"
+          echo "JF_REGISTRY=$registry" >> "$GITHUB_ENV"
+          echo "IMAGE=$registry/$DOCKER_REPO/user-management-service:${GITHUB_SHA:0:12}-$JFROG_CLI_BUILD_NUMBER" >> "$GITHUB_ENV"
 
-    - name: build webapp
-      run: |
-         jf npm ci
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        with:
+          version: 2.127.0
+          disable-auto-build-publish: true
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Scan fixed source with Contextual Analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scan-results
+          jf audit --npm --sca --format=sarif > scan-results/after.sarif
+          node submission/scripts/summarize-scan.cjs scan-results/after.sarif --assert-contextual --assert-absent=CVE-2022-31129
 
-    - name: Authenticate Docker
-      uses: docker/login-action@v3
-      with:
-         registry: ${{ vars.JF_URL }}
-         username: ${{ steps.setup-cli.outputs.oidc-user }}
-         password: ${{ steps.setup-cli.outputs.oidc-token }}
+      - name: Authenticate Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.JF_REGISTRY }}
+          username: ${{ env.JF_USER }}
+          password: ${{ secrets.JF_ACCESS_TOKEN }}
 
-    - name: Build the Docker image
-      uses: docker/build-push-action@v6
-      id: build
-      with:
-        push: true
-        context: .
-        platforms: linux/amd64,linux/arm64
-        tags: ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}
-        provenance: false
-        
+      - name: Build and smoke-test image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --provenance=false --sbom=false \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "$IMAGE" .
+          trap 'docker logs assignment-smoke; docker rm -f assignment-smoke >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name assignment-smoke --publish 127.0.0.1:3000:3000 "$IMAGE"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/health > scan-results/container-health.json; then
+              break
+            fi
+            sleep 1
+          done
+          node -e "const h=require('./scan-results/container-health.json');if(h.status!=='healthy')process.exit(1)"
 
-    - name: add docker package to build
-      run: |
-           echo "${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}" > metadata.json
-           jf rt build-docker-create ${{ env.DOCKER_REPO }} --image-file metadata.json
-           
-    - name: publish build info
-      run: |
-           jf rt build-collect-env
-           jf rt build-add-git
-           jf rt build-publish
+      - name: Push image and collect Docker Build Info
+        run: jf docker push "$IMAGE" --skip-login --build-name="$JFROG_CLI_BUILD_NAME" --build-number="$JFROG_CLI_BUILD_NUMBER"
+
+      - name: Publish Build Info with source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          jf rt build-add-git "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
+          jf rt build-publish "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
+          docker image inspect "$IMAGE" --format '{{json .RepoDigests}}' > scan-results/image-digests.json
+          {
+            echo "### Published assignment artifacts"
+            echo "- Image: $IMAGE"
+            echo "- Build: $JFROG_CLI_BUILD_NAME / $JFROG_CLI_BUILD_NUMBER"
+            echo "- Source: $GITHUB_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve scan and publication evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assignment-evidence-${{ github.run_number }}-${{ github.run_attempt }}
+          path: scan-results/
+          if-no-files-found: warn

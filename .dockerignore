@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+submission
+scan-results
+coverage
+dist
+*.log
+*.tgz
+.env
+.env.*
+src/test
+src/**/*.test.js
